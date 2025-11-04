@@ -122,7 +122,7 @@ const MapSection = ({
     }
   }, [map, facilities]); // facilities가 바뀔 때마다 실행
 
-  // 3. [신규] '구' 선택 시 지도를 해당 위치로 이동
+  // 3. '구' 선택 시 지도 이동 (변경 없음)
   useEffect(() => {
     if (map && selectedGu && guCoordinates[selectedGu]) {
       const [lat, lng] = guCoordinates[selectedGu];
@@ -137,7 +137,7 @@ const MapSection = ({
     }
   }, [map, selectedGu]); // selectedGu가 바뀔 때마다 실행
 
-  // 4. [신규] '내 위치' GPS 버튼 클릭 핸들러
+  // 4. '내 위치' GPS 버튼 클릭 핸들러 (변경 없음)
   const handleCurrentLocationClick = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((position) => {
@@ -168,7 +168,7 @@ const MapSection = ({
     }
   };
 
-  // 5. [신규] '항목' (다중) 선택 토글 핸들러
+  // 5. '항목' (다중) 선택 토글 핸들러 (변경 없음)
   const handleCategoryToggle = (categoryValue: string) => {
     const newSelection = selectedCategories.includes(categoryValue)
       ? selectedCategories.filter(c => c !== categoryValue) // 이미 있으면 제거
@@ -182,15 +182,20 @@ const MapSection = ({
 
   return (
     <section id="map" className="py-16 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* [수정] 기존 grid 레이아웃 제거, relative 컨테이너로 변경 */}
-        <div className="relative">
+      <div className="max-w-9xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* [수정됨] 
+          - 기존 "relative" 컨테이너를 "lg:flex lg:gap-8"으로 변경
+          - 데스크톱에서는 flex row, 모바일에서는 flex column (기본값)으로 작동
+        */}
+        <div className="lg:flex lg:gap-8">
           
-          {/* 1. 지도 영역 (기존과 동일) */}
-          <div className="relative bg-blue-100 p-3 rounded-lg shadow-lg border bg-blue-100">
+          {/* 1. 지도 영역 (왼쪽) */}
+          {/* [수정됨] "lg:flex-1"을 추가하여 남은 공간을 모두 차지하도록 함 */}
+          <div className="lg:flex-1 relative bg-blue-100 p-3 rounded-lg shadow-lg border bg-blue-100">
             <div
               ref={mapRef}
-              className="w-full h-[500px] lg:h-[700px] bg-gray-200 rounded-lg"
+              className="w-full h-[500px] lg:h-[800px] bg-gray-200 rounded-lg"
             >
               {loading && (
                 <div className="flex items-center justify-center h-full">
@@ -205,21 +210,31 @@ const MapSection = ({
             )}
           </div>
 
-          {/* 2. [신규] 필터 패널 (지도 위에 뜸) */}
-          <div className="absolute top-4 right-7 z-10 w-72 bg-white p-4 rounded-lg shadow-xl max-h-[calc(100%-2rem)] overflow-y-auto">
-            
-            {/* '내 위치' 버튼 */}
-            <button 
-              onClick={handleCurrentLocationClick} 
-              title="내 위치 찾기"
-              className="absolute top-3 right-3 p-1 text-gray-500 hover:text-primary transition-colors"
-            >
-              <Crosshair size={20} />
-            </button>
+          {/* 2. 필터 패널 (오른쪽) */}
+          {/* [수정됨] 
+            - "absolute top-4 right-7 z-10" 등 절대 위치 클래스 제거
+            - "mt-8 lg:mt-0" : 모바일에선 상단 마진, 데스크톱에선 마진 제거
+            - "w-full lg:w-72 lg:flex-none" : 모바일에선 꽉 채우고, 데스크톱에선 72(288px) 너비 고정
+            - "lg:max-h-[700px]" : 데스크톱에서 지도 높이와 맞춤
+          */}
+          <div className="w-full lg:w-72 lg:flex-none mt-8 lg:mt-0 bg-white p-4 rounded-lg shadow-xl lg:max-h-[800px] overflow-y-auto">
             
             {/* '구' 선택 필터 */}
             <div className="mb-4">
-              <h3 className="font-bold text-lg mb-2 text-gray-800">위치 선택</h3>
+              {/* [수정됨] 
+                - '내 위치' 버튼을 H3 태그와 같은 줄에 flex로 배치
+                - '내 위치' 버튼의 "absolute" 클래스 제거
+              */}
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-bold text-lg text-gray-800">위치 선택</h3>
+                <button 
+                  onClick={handleCurrentLocationClick} 
+                  title="내 위치 찾기"
+                  className="p-1 text-gray-500 hover:text-primary transition-colors"
+                >
+                  <Crosshair size={20} />
+                </button>
+              </div>
               <div className="flex flex-wrap gap-2">
                 <button 
                   onClick={() => setSelectedGu(null)} 

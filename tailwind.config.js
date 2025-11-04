@@ -7,6 +7,10 @@ export default {
         primary: '#007BFF',
         'primary-dark': '#007BFF',
       },
+      maxWidth: {
+        '8xl': '90rem', // 1440px
+        '9xl': '100rem', // 1600px
+      }
     },
   },
   plugins: [],

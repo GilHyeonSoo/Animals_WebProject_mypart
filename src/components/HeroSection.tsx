@@ -10,7 +10,7 @@ const HeroSection = ({ searchQuery, onSearchChange }: HeroSectionProps) => {
     <section className="bg-gradient-to-r from-[#007BFF] to-[#007BFF5C] text-white py-20">
       <div className="max-w-9xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 className="text-3xl md:text-4xl font-bold mb-8">
-          내 반려동물을 위한 장소, 애니멀루에서 찾으세요!
+          내 반려동물을 위한 장소, "Animalloo"에서 찾으세요!
         </h2>
 
         <div className="max-w-2xl mx-auto">

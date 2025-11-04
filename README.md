@@ -61,23 +61,13 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_KAKAO_MAP_API_KEY=your_kakao_map_api_key
 ```
 
-#### Supabase 설정
-1. [Supabase](https://supabase.com)에서 프로젝트 생성
-2. Project Settings > API에서 URL과 anon key 복사
-3. 데이터베이스 마이그레이션은 자동으로 적용됨
-
-#### Kakao Maps API 설정
-1. [Kakao Developers](https://developers.kakao.com)에서 애플리케이션 등록
-2. 웹 플랫폼 추가 및 JavaScript 키 발급
-3. 사이트 도메인 등록 (개발: http://localhost:5173)
-
 ### 3. 개발 서버 실행
 
 ```bash
 npm run dev
 ```
 
-### 4. 프로덕션 빌드
+### 프로덕션 빌드
 
 ```bash
 npm run build

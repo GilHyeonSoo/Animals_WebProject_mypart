@@ -1,5 +1,4 @@
 # backend/LLM_part/LLM.py
-
 import os
 import json
 import google.generativeai as genai
@@ -10,9 +9,18 @@ from typing import Dict, List, Any, Optional, Tuple
 
 # [cite: gilhyeonsoo/animalloo_project/Animalloo_Project-1efa865e9723beef22ccb42dd918cb8952428a88/frontend/supabase/migrations/20251104051453_create_facilities_schema.sql]
 DB_CATEGORIES = [
-    'hospital', 'pharmacy', 'grooming', 'culture_center', 
-    'museum', 'art_gallery', 'travel', 'care_service', 
-    'pension', 'pet_supplies', 'restaurant', 'cafe'
+    'veterinary hospital', 
+    'pharmacy', 
+    'beauty salon', 
+    'culture_center', 
+    'museum building', 
+    'art museum', 
+    'travel', 
+    'hotel', 
+    '펜션', 
+    'shop', 
+    'Korean restaurant', 
+    'café au lait'
 ]
 
 class LLMProcessor:
@@ -37,7 +45,7 @@ class LLMProcessor:
                 genai.configure(api_key=api_key)
                 generation_config = {"response_mime_type": "application/json"}
                 self.model = genai.GenerativeModel(
-                    'gemini-pro', # 또는 최신 Gemini 모델
+                    'gemini-2.5-flash', # 또는 최신 Gemini 모델
                     generation_config=generation_config
                 )
                 print("[LLM] Gemini 모델이 실제 API 키로 성공적으로 초기화되었습니다.")
@@ -74,7 +82,7 @@ class LLMProcessor:
         2.  **search_radius_km**:
             - "내 위치 중심" 검색을 위한 합리적인 검색 반경(km)을 추천합니다.
             - 기본값은 3km입니다.
-            - "가까운", "근처" 등은 3km로 설정합니다.
+            - "가까운", "근처" 등은 1km로 설정합니다.
             - "멀리 있는" 또는 "서울 전체" 같은 뉘앙스가 있다면 10km 이상으로 설정할 수 있습니다.
             - 도보, 자전거 등 키워드가 있다면 1km로 설정합니다.
         3.  **text_filter**:
@@ -110,7 +118,7 @@ class LLMProcessor:
                 elif "약국" in query or "pharmacy" in query:
                     result = {"categories": ["pharmacy"], "search_radius_km": 3.0, "text_filter": None}
                 elif "밥" in query or "식당" in query or "카페" in query:
-                     result = {"categories": ["restaurant", "cafe"], "search_radius_km": 2.0, "text_filter": None}
+                     result = {"categories": ["restaurant", "cafe"], "search_radius_km": 3.0, "text_filter": None}
                 else:
                      result = {"categories": [], "search_radius_km": 3.0, "text_filter": query if query else None}
                 
@@ -138,6 +146,6 @@ class LLMProcessor:
             # LLM 실패 시, 검색어 원본을 text_filter로 사용하는 기본값 반환
             return {
                 "categories": [],  # 카테고리 분석 실패
-                "search_radius_km": 5.0, # 기본 반경 5km
+                "search_radius_km": 3.0, # 기본 반경 5km
                 "text_filter": query # 검색어 원본을 필터로 사용
             }

@@ -62,18 +62,34 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_KAKAO_MAP_API_KEY=your_kakao_map_api_key
 ```
 
-### 3. 개발 서버 실행
-
+## 📦 설치 및 실행
+### Frontend
 ```bash
+# frontend 폴더로 이동
+cd frontend
+
+# 의존성 설치
+npm install
+
+# 개발 서버 실행 (http://localhost:3000)
 npm run dev
 ```
-
-### 프로덕션 빌드
-
+### Backend
 ```bash
-npm run build
-npm run preview
+# backend 폴더로 이동
+cd backend
+
+# 가상환경 생성 및 활성화
+python -m venv venv
+.\venv\Scripts\activate
+
+# 의존성 설치
+pip install -r requirements.txt
+
+# 개발 서버 실행 (http://localhost:5000)
+python app.py
 ```
+
 
 ## 데이터베이스 구조
 

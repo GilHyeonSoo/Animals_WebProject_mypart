@@ -4,7 +4,7 @@ import FacilityModal from './FacilityModal';
 // --- [수정됨] RefreshCcw 아이콘 import ---
 import { Crosshair, ChevronDown, RefreshCcw } from 'lucide-react'; 
 
-// Props 인터페이스 (변경 없음)
+// Props 인터페이스 (기존과 동일)
 interface MapSectionProps {
   facilities: Facility[];
   loading: boolean;
@@ -13,9 +13,10 @@ interface MapSectionProps {
   setSelectedGu: (gu: string | null) => void;
   selectedCategories: string[];
   setSelectedCategories: (categories: string[]) => void;
+  findLocationTrigger: number; // App.tsx로부터 받는 트리거
 }
 
-// 카테고리 목록 (변경 없음)
+// 카테고리 목록 (기존과 동일)
 const uiCategories = [
   { value: 'hospital', label: '병 원'},
   { value: 'pharmacy', label: '약 국'},
@@ -23,18 +24,25 @@ const uiCategories = [
   { value: 'culture_center', label: '문 화 센 터'},
   { value: 'travel', label: '여 행 지'},
   { value: 'care_service', label: '위 탁 관 리'},
-  { value: 'pension', label: '펜 션'},
+  { value: 'pension', 'label': '펜 션'},
   { value: 'pet_supplies', label: '동 물 용 품'},
   { value: 'restaurant', label: '식 당'}
 ];
 
-// '구' 좌표 (변경 없음)
+// '구' 좌표 (기존과 동일)
 const guCoordinates: Record<string, [number, number]> = {
   '강남구': [37.5172, 127.0473],
   '마포구': [37.5662, 126.9015],
   '구로구': [37.4954, 126.8875],
   '송파구': [37.5145, 127.1058],
 };
+
+// --- [추가] 테스트용 서울 고정 좌표 ---
+const SEOUL_TEST_COORDS = {
+  lat: 37.5665, // 서울 시청 위도
+  lng: 126.9780  // 서울 시청 경도
+};
+
 
 declare global {
   interface Window {
@@ -49,23 +57,24 @@ const MapSection = ({
   selectedGu,
   setSelectedGu,
   selectedCategories,
-  setSelectedCategories
+  setSelectedCategories,
+  findLocationTrigger // --- [추가됨] ---
 }: MapSectionProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>(null);
-  const [markers, setMarkers] = useState<any[]>([]);
+  // --- [오류 수정] ---
+  // const [markers, setMarkers] = useState<any[]>([];  <- [ 와 ] 사이에 괄호 ) 가 빠졌었습니다.
+  const [markers, setMarkers] = useState<any[]>([]); // 괄호를 추가하여 수정
   const [userMarker, setUserMarker] = useState<any>(null);
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
 
-  // --- 아코디언 상태 관리 ---
+  // --- 아코디언 상태 관리 (기존과 동일) ---
   const [isLocationOpen, setIsLocationOpen] = useState(true);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [locationSelected, setLocationSelected] = useState(false);
-  
-  // '내 위치' 선택 여부 추적
   const [usingMyLocation, setUsingMyLocation] = useState(false);
 
-  // 1. 맵 기본 로드 (변경 없음)
+  // 1. 맵 기본 로드 (기존과 동일)
   useEffect(() => {
     const script = document.createElement('script');
     script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${import.meta.env.VITE_KAKAO_MAP_API_KEY || 'YOUR_API_KEY'}&autoload=false`;
@@ -76,7 +85,8 @@ const MapSection = ({
       window.kakao.maps.load(() => {
         if (mapRef.current) {
           const options = {
-            center: new window.kakao.maps.LatLng(37.5665, 126.9780),
+            // --- [수정됨] 지도의 기본 중심을 서울 좌표로 설정 ---
+            center: new window.kakao.maps.LatLng(SEOUL_TEST_COORDS.lat, SEOUL_TEST_COORDS.lng),
             level: 8,
           };
           const newMap = new window.kakao.maps.Map(mapRef.current, options);
@@ -90,7 +100,7 @@ const MapSection = ({
     };
   }, []);
 
-  // 2. 마커 업데이트 (변경 없음)
+  // 2. 마커 업데이트 (기존과 동일)
   useEffect(() => {
     if (!map) return;
     markers.forEach(marker => marker.setMap(null));
@@ -115,11 +125,14 @@ const MapSection = ({
       facilities.forEach(facility => {
         bounds.extend(new window.kakao.maps.LatLng(facility.latitude, facility.longitude));
       });
-      map.setBounds(bounds);
+      // [수정] bounds 객체가 비어있지 않을 때만 setBounds 호출
+      if (bounds.isEmpty() === false) {
+        map.setBounds(bounds);
+      }
     }
   }, [map, facilities]);
 
-  // 3. '구' 선택 시 지도 이동 (변경 없음)
+  // 3. '구' 선택 시 지도 이동 (기존과 동일)
   useEffect(() => {
     if (map && selectedGu && guCoordinates[selectedGu]) {
       const [lat, lng] = guCoordinates[selectedGu];
@@ -127,14 +140,42 @@ const MapSection = ({
       map.panTo(moveLatLon);
       map.setLevel(5);
     } else if (map && !selectedGu) {
-      const moveLatLon = new window.kakao.maps.LatLng(37.5665, 126.9780);
+      const moveLatLon = new window.kakao.maps.LatLng(SEOUL_TEST_COORDS.lat, SEOUL_TEST_COORDS.lng);
       map.panTo(moveLatLon);
       map.setLevel(8);
     }
   }, [map, selectedGu]);
 
-  // 4. '내 위치' GPS 버튼 클릭 핸들러
+  
+  // --- [!!!] 4. '내 위치' GPS 버튼 클릭 핸들러 (수정됨) ---
   const handleCurrentLocationClick = () => {
+    
+    // -----------------------------------------------------------------
+    // 'navigator.geolocation' (실제 GPS) 대신 서울 좌표를 하드코딩합니다.
+    console.log("[테스트 모드] '내 위치'를 서울 좌표로 고정합니다.");
+    const lat = SEOUL_TEST_COORDS.lat;
+    const lng = SEOUL_TEST_COORDS.lng;
+    const locPosition = new window.kakao.maps.LatLng(lat, lng);
+
+    if (userMarker) userMarker.setMap(null);
+    
+    const newUserMarker = new window.kakao.maps.Marker({
+      position: locPosition,
+      map: map,
+    });
+    setUserMarker(newUserMarker);
+    map.panTo(locPosition);
+    map.setLevel(4);
+    
+    setSelectedGu(null);
+    setUsingMyLocation(true);
+    setLocationSelected(true);
+    setIsLocationOpen(false);
+    setIsCategoryOpen(true);
+    
+    // -----------------------------------------------------------------
+    
+    /* // --- (참고) 이것이 원래 실제 GPS를 가져오는 코드였습니다 ---
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((position) => {
         const lat = position.coords.latitude;
@@ -165,9 +206,21 @@ const MapSection = ({
     } else {
       alert('이 브라우저에서는 Geolocation을 지원하지 않습니다.');
     }
+    */
   };
 
-  // 5. '항목' (다중) 선택 토글 핸들러 (변경 없음)
+  
+  // --- [추가] HeroSection 검색 시 '내 위치' 강제 실행 ---
+  useEffect(() => {
+    // 0보다 클 때만 (즉, 최초 로드가 아닐 때) 실행
+    if (findLocationTrigger > 0) {
+      console.log("[Trigger] HeroSection 검색으로 '내 위치'를 실행합니다.");
+      handleCurrentLocationClick();
+    }
+  }, [findLocationTrigger]); // findLocationTrigger 값이 바뀔 때마다 실행
+
+
+  // 5. '항목' (다중) 선택 토글 핸들러 (기존과 동일)
   const handleCategoryToggle = (categoryValue: string) => {
     const newSelection = selectedCategories.includes(categoryValue)
       ? selectedCategories.filter(c => c !== categoryValue)
@@ -175,7 +228,7 @@ const MapSection = ({
     setSelectedCategories(newSelection);
   };
 
-  // 6. '구' 선택 핸들러
+  // 6. '구' 선택 핸들러 (기존과 동일)
   const handleGuSelect = (gu: string | null) => {
     setSelectedGu(gu);
     setUsingMyLocation(false);
@@ -184,11 +237,11 @@ const MapSection = ({
     setIsCategoryOpen(true);
   };
 
-  // --- 버튼 스타일 (변경 없음) ---
+  // --- 버튼 스타일 (기존과 동일) ---
   const activeBtnClass = "bg-primary text-white font-medium py-1 px-3 rounded-full text-sm transition-all";
   const inactiveBtnClass = "bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium py-1 px-3 rounded-full text-sm transition-all";
 
-  // --- 아코디언 헤더 스타일 (변경 없음) ---
+  // --- 아코디언 헤더 스타일 (기존과 동일) ---
   const accordionHeaderBaseClass = "flex justify-between items-center w-full p-2 rounded transition-colors";
   const accordionHeaderActive = "hover:bg-gray-100";
   const accordionHeaderDisabled = "cursor-not-allowed";
@@ -203,7 +256,7 @@ const MapSection = ({
         
         <div className="lg:flex lg:gap-8">
           
-          {/* 1. 지도 영역 (변경 없음) */}
+          {/* 1. 지도 영역 (기존과 동일) */}
           <div className="lg:flex-1 relative bg-blue-100 p-3 rounded-lg shadow-lg border bg-blue-100">
             <div
               ref={mapRef}
@@ -222,7 +275,7 @@ const MapSection = ({
             )}
           </div>
 
-          {/* 2. 필터 패널 (오른쪽) */}
+          {/* 2. 필터 패널 (오른쪽) (기존과 동일) */}
           <div className="w-full lg:w-72 lg:flex-none mt-8 lg:mt-0 bg-white p-4 rounded-lg shadow-xl lg:max-h-[700px] overflow-y-auto">
             
             {/* --- 1. '위치 선택' 아코디언 --- */}

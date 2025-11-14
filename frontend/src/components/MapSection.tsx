@@ -2,31 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import FacilityModal from './FacilityModal';
 // --- [수정됨] RefreshCcw 아이콘 import ---
 import { Crosshair, ChevronDown, RefreshCcw } from 'lucide-react'; 
-
-export interface Facility {
-  id: string;
-  name: string;
-  category: string;
-  address: string;
-  district: string;
-  Latitude: number; // 대소문자 확인
-  Longitude: number; // 대소문자 확인
-  phone?: string;
-  description?: string;
-  opening_hours?: string;
-  distance_km?: number;
-}
-
-export interface District {
-  id: string; // 또는 number
-  name: string;
-  description?: string;
-  popular_services?: string;
-  Latitude?: number;  // <-- [추가] DB에 추가한 컬럼
-  Longitude?: number; // <-- [추가] DB에 추가한 컬럼
-  en_name?: string;
-}
-// --- [신규] 타입 정의 끝 ---
+import { Facility, District } from '../types';  // ⬅️ 추가!
 
 // Props 인터페이스 (기존과 동일)
 interface MapSectionProps {
@@ -48,7 +24,7 @@ const uiCategories = [
   { value: 'culture_center', label: '문 화 센 터'},
   { value: 'travel', label: '여 행 지'},
   { value: 'care_service', label: '위 탁 관 리'},
-  { value: 'pension', 'label': '펜 션'},
+  { value: 'pension', label: '펜 션'},
   { value: 'pet_supplies', label: '동 물 용 품'},
   { value: 'restaurant', label: '식 당'}
 ];

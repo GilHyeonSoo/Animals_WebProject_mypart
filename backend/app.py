@@ -257,6 +257,35 @@ def handle_districts():
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     return send_from_directory('uploads', filename)
+
+@app.route('/api/facilities/<int:facility_id>', methods=['GET'])
+def get_facility_detail(facility_id):
+    """
+    특정 시설의 상세 정보 반환
+    """
+    DB_PATH = '../animalloo_en_db.sqlite'
+    conn = None
+    
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM facilities WHERE id = ?", (facility_id,))
+        row = cursor.fetchone()
+        
+        if row:
+            return jsonify(dict(row)), 200
+        else:
+            return jsonify({"error": "시설을 찾을 수 없습니다"}), 404
+    
+    except sqlite3.Error as e:
+        print(f"[DB 오류] {e}")
+        return jsonify({"error": f"데이터 검색 중 오류 발생: {e}"}), 500
+    finally:
+        if conn:
+            conn.close()
+
 # --- 5. 서버 실행 ---
 if __name__ == '__main__':
     with app.app_context():

@@ -18,7 +18,10 @@ load_dotenv()
 # --- 2. Flask 앱 및 LLM 초기화 ---
 app = Flask(__name__)
 # React 개발 서버(localhost:3000)에서의 요청을 허용합니다.
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+CORS(app, resources={r"/api/*": {
+    "origins": "*",
+    "allow_headers": ["Authorization", "Content-Type"] # <-- 이 줄 추가
+}})
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(os.path.dirname(__file__), '..', 'animalloo_en_db.sqlite')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False

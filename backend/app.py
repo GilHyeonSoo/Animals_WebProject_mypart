@@ -1,6 +1,6 @@
 import os
 import json
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 from LLM_part.LLM import LLMProcessor
@@ -10,7 +10,6 @@ from models import db, bcrypt, User
 from flask_jwt_extended import JWTManager
 import secrets
 from auth import auth_bp
-
 # --- 1. 환경 변수 로드 ---
 load_dotenv()
 
@@ -255,6 +254,9 @@ def handle_districts():
         print(f"[DB 오류] {e}")
         return jsonify({"error": f"데이터 검색 중 오류 발생: {e}"}), 500
 
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory('uploads', filename)
 # --- 5. 서버 실행 ---
 if __name__ == '__main__':
     with app.app_context():

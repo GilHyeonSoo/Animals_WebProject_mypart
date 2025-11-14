@@ -59,64 +59,72 @@ def get_haversine_distance(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
-def query_sqlite_db(user_lat: float, user_lon: float, params: dict) -> list:
+DB_PATH = '../animalloo_en_db.sqlite'
+
+def query_sqlite_db(query, params=None):
     """
-    (Req 2) 사용자 위치(lat/lon)와 LLM 파라미터 기반으로 SQLite DB 검색
+    SQLite DB에 쿼리를 실행하여 결과를 JSON으로 반환
+    필드명을 프론트엔드 형식에 맞게 매핑
     """
-    print(f"[DB 쿼리] 입력: lat={user_lat}, lon={user_lon}, params={params}")
-    DB_PATH = '../animalloo_en_db.sqlite'
-    llm_categories = params.get("categories", [])
-    text_filter = params.get("text_filter")
-    search_radius_km = params.get("search_radius_km", 3.0)
     conn = None
-    results = []
-    
     try:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        query = "SELECT * FROM facilities WHERE 1=1"
-        query_params = []
         
-        if len(llm_categories) > 0:
-            placeholders = ', '.join('?' for _ in llm_categories)
-            query += f" AND category IN ({placeholders})"
-            query_params.extend(llm_categories)
+        if params:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
         
-        if text_filter:
-            query += " AND (name LIKE ? OR description LIKE ?)"
-            query_params.extend([f"%{text_filter}%", f"%{text_filter}%"])
+        rows = cursor.fetchall()
+        results = []
         
-        cursor.execute(query, query_params)
-        potential_facilities = cursor.fetchall()
-        print(f"[DB 쿼리] 1차 필터링 결과: {len(potential_facilities)}개")
+        # 필드명 매핑 테이블
+        field_mapping = {
+            'Facility_ID': 'id',
+            'Name': 'name',
+            'Category': 'category',
+            'District': 'district',
+            'PhoneNumber': 'phone',
+            'LotAddress': 'address',
+            'RoadAddress': 'road_address',
+            'Description': 'description',
+            'Website': 'website',
+            'ParkingAvailable': 'parking_available',
+            'PetFriendly': 'pet_friendly',
+            'AdmissionFeeInfo': 'admission_fee',
+            'PetRestrictions': 'pet_restrictions',
+            # Latitude, Longitude는 그대로 유지
+        }
         
-        for row in potential_facilities:
-            facility = dict(row)
-            fac_lat = facility.get('Latitude')
-            fac_lon = facility.get('Longitude')
-            if fac_lat is None or fac_lon is None:
-                continue
+        for row in rows:
+            data = dict(row)
+            mapped_data = {}
             
-            try:
-                distance = get_haversine_distance(user_lat, user_lon, float(fac_lat), float(fac_lon))
-            except (ValueError, TypeError):
-                print(f"[DB 경고] 좌표 변환 실패: lat={fac_lat}, lon={fac_lon}")
-                continue
+            # 필드명 매핑
+            for key, value in data.items():
+                new_key = field_mapping.get(key, key)
+                mapped_data[new_key] = value
             
-            if distance <= search_radius_km:
-                facility['distance_km'] = round(distance, 2)
-                results.append(facility)
+            # id를 문자열로 변환
+            if 'id' in mapped_data:
+                mapped_data['id'] = str(mapped_data['id'])
+            
+            results.append(mapped_data)
+        
+        print(f"[DB 조회] {len(results)}개 결과")
+        if results:
+            print(f"[DB 샘플] id={results[0].get('id')}, name={results[0].get('name')}, category={results[0].get('category')}")
+        
+        return results
     
     except sqlite3.Error as e:
-        print(f"[DB 오류] SQLite 오류: {e}")
-        raise e
+        print(f"[DB 오류] {e}")
+        return []
     finally:
         if conn:
             conn.close()
-    
-    print(f"[DB 쿼리] 최종 {len(results)}개 시설 반환 (반경: {search_radius_km}km)")
-    return sorted(results, key=lambda x: x['distance_km'])
 
 def query_db_by_district(district: str, categories: list) -> list:
     """
@@ -131,6 +139,7 @@ def query_db_by_district(district: str, categories: list) -> list:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
+        
         query = "SELECT * FROM facilities WHERE district = ?"
         query_params = [district]
         
@@ -141,8 +150,39 @@ def query_db_by_district(district: str, categories: list) -> list:
         
         cursor.execute(query, query_params)
         rows = cursor.fetchall()
-        results = [dict(row) for row in rows]
-    
+        
+        # ⬇️ 필드명 매핑 추가!
+        field_mapping = {
+            'Facility_ID': 'id',
+            'Name': 'name',
+            'Category': 'category',
+            'District': 'district',
+            'PhoneNumber': 'phone',
+            'LotAddress': 'address',
+            'RoadAddress': 'road_address',
+            'Description': 'description',
+            'Website': 'website',
+            'ParkingAvailable': 'parking_available',
+            'PetFriendly': 'pet_friendly',
+            'AdmissionFeeInfo': 'admission_fee',
+            'PetRestrictions': 'pet_restrictions',
+        }
+        
+        for row in rows:
+            data = dict(row)
+            mapped_data = {}
+            
+            # 필드명 매핑
+            for key, value in data.items():
+                new_key = field_mapping.get(key, key)
+                mapped_data[new_key] = value
+            
+            # id를 문자열로 변환
+            if 'id' in mapped_data:
+                mapped_data['id'] = str(mapped_data['id'])
+            
+            results.append(mapped_data)
+        
     except sqlite3.Error as e:
         print(f"[DB 오류] SQLite 오류: {e}")
         raise e
@@ -151,6 +191,9 @@ def query_db_by_district(district: str, categories: list) -> list:
             conn.close()
     
     print(f"[DB 필터] 최종 {len(results)}개 시설 반환")
+    if results:
+        print(f"[DB 샘플] id={results[0].get('id')}, name={results[0].get('name')}, category={results[0].get('category')}")
+    
     return results
 
 def query_all_districts() -> list:

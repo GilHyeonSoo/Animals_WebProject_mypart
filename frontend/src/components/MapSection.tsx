@@ -220,10 +220,10 @@ const MapSection = ({
   };
 
   // 버튼 스타일
-  const activeBtnClass = "bg-sky-500 text-white font-medium py-1 px-3 rounded-full text-sm transition-all";
+  const activeBtnClass = "bg-primary text-white font-medium py-1 px-3 rounded-full text-sm transition-all";
   const inactiveBtnClass = "bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium py-1 px-3 rounded-full text-sm transition-all";
 
-  // 아코디언 헤더 스타일
+  // --- 아코디언 헤더 스타일 (기존과 동일) ---
   const accordionHeaderBaseClass = "flex justify-between items-center w-full p-2 rounded transition-colors";
   const accordionHeaderActive = "hover:bg-gray-100";
   const accordionHeaderDisabled = "cursor-not-allowed";
@@ -234,149 +234,160 @@ const MapSection = ({
   console.log('🔍 selectedFacility:', selectedFacility);
 
   return (
-    <div className="relative bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-6 flex gap-6">
-        {/* 1. 지도 영역 (왼쪽) */}
-        <div className="flex-1">
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            <div ref={mapRef} className="w-full h-[600px]" />
-          </div>
-
-          {loading && (
-            <div className="text-center py-4 text-sky-600 font-semibold">
-              데이터 로딩 중...
-            </div>
-          )}
-
-          {!loading && facilities.length === 0 && (
-            <div className="text-center py-4 text-gray-500">
-              {selectedGu ? `'${selectedGu}'에 해당 시설이 없습니다.` :
-                usingMyLocation ? "내 위치 1km 근방에 해당 시설이 없습니다." :
-                  "검색 또는 필터링 결과가 없습니다."}
-            </div>
-          )}
-
-          {!loading && facilities.length > 0 && (
-            <div className="mt-4 text-center text-gray-600">
-              총 <span className="font-bold text-sky-600">{facilities.length}개</span>의 시설이 검색되었습니다.
-            </div>
-          )}
-        </div>
-
-        {/* 2. 필터 패널 (오른쪽) */}
-        <div className="w-80 bg-white rounded-xl shadow-md p-4 h-fit sticky top-4">
-          {/* 1. '위치 선택' 아코디언 */}
-          <div className="mb-4">
-            <button
-              onClick={() => setIsLocationOpen(!isLocationOpen)}
-              className={`${accordionHeaderBaseClass} ${accordionHeaderActive}`}
+    <section id="map" className="py-16 bg-gray-50">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div className="lg:flex lg:gap-8">
+          
+          {/* 1. 지도 영역 (기존과 동일) */}
+          <div className="lg:flex-1 relative bg-blue-100 p-3 rounded-lg shadow-lg border bg-blue-100">
+            <div
+              ref={mapRef}
+              className="w-full h-[500px] lg:h-[700px] bg-gray-200 rounded-lg"
             >
-              <span className={`${accordionTitleBase} ${accordionTitleActive}`}>
-                1. 위치 선택
-                {locationSelected && (
-                  <span className="text-sm text-sky-600 ml-2">
-                    ({usingMyLocation ? '내 위치' : selectedGu || '전체'})
-                  </span>
-                )}
-              </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCurrentLocationClick();
-                }}
-                title="내 위치 찾기"
-                className="p-1 text-gray-500 hover:text-sky-500 transition-colors"
-              >
-                <Crosshair size={20} />
-              </button>
-            </button>
-
-            {isLocationOpen && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button
-                  onClick={() => handleGuSelect(null)}
-                  className={!selectedGu && !usingMyLocation ? activeBtnClass : inactiveBtnClass}
-                >
-                  전체
-                </button>
-                {districts.map(d => (
-                  <button
-                    key={d.id}
-                    onClick={() => handleGuSelect(d.name)}
-                    className={selectedGu === d.name ? activeBtnClass : inactiveBtnClass}
-                  >
-                    {d.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 2. '항목 선택' 아코디언 */}
-          <div>
-            <button
-              onClick={() => {
-                if (locationSelected) setIsCategoryOpen(!isCategoryOpen);
-              }}
-              className={`${accordionHeaderBaseClass} ${!locationSelected ? accordionHeaderDisabled : accordionHeaderActive}`}
-              disabled={!locationSelected}
-            >
-              <span className={`${accordionTitleBase} ${!locationSelected ? accordionTitleDisabled : accordionTitleActive}`}>
-                2. 항목 선택
-                {selectedCategories.length > 0 && (
-                  <span className="text-sm text-sky-600 ml-2">
-                    ({selectedCategories.length}개)
-                  </span>
-                )}
-              </span>
-              {locationSelected && selectedCategories.length > 0 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedCategories([]);
-                  }}
-                  className="p-1 text-gray-500 hover:text-sky-500 transition-colors"
-                  title="항목 초기화"
-                >
-                  <RefreshCcw size={16} />
-                </button>
+              {loading && (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-gray-500 italic">지도를 로딩 중입니다...</p>
+                </div>
               )}
-            </button>
+            </div>
+            {!loading && facilities.length === 0 && (
+              <div className="absolute inset-3 flex items-center justify-center bg-gray-200 rounded-lg">
+                <p className="text-gray-500">해당 카테고리의 시설이 없습니다.</p>
+              </div>
+            )}
+          </div>
 
-            {isCategoryOpen && locationSelected && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {uiCategories.map(c => (
-                  <button
-                    key={c.value}
-                    onClick={() => handleCategoryToggle(c.value)}
-                    className={selectedCategories.includes(c.value) ? activeBtnClass : inactiveBtnClass}
+          {/* 2. 필터 패널 (오른쪽) (기존과 동일) */}
+          <div className="w-full lg:w-72 lg:flex-none mt-8 lg:mt-0 bg-white p-4 rounded-lg shadow-xl lg:max-h-[700px] overflow-y-auto">
+            
+            {/* --- 1. '위치 선택' 아코디언 --- */}
+            <div className="mb-2">
+              <button
+                onClick={() => setIsLocationOpen(!isLocationOpen)}
+                className={`${accordionHeaderBaseClass} ${accordionHeaderActive}`}
+              >
+                <h3 className={`${accordionTitleBase} ${accordionTitleActive}`}>
+                  1. 위치 선택
+                  {locationSelected && (
+                    <span className="text-sm font-medium text-primary ml-2">
+                      ({usingMyLocation ? '내 위치' : selectedGu || '전체'})
+                    </span>
+                  )}
+                </h3>
+                
+                <div className="flex items-center">
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation();
+                      handleCurrentLocationClick();
+                    }} 
+                    title="내 위치 찾기"
+                    className="p-1 text-gray-500 hover:text-primary transition-colors"
                   >
-                    {c.label.trim()}
+                    <Crosshair size={20} />
                   </button>
-                ))}
-              </div>
-            )}
+                  <ChevronDown 
+                    size={20} 
+                    className={`transition-transform ${isLocationOpen ? 'rotate-180' : ''}`} 
+                  />
+                </div>
+              </button>
 
-            {!locationSelected && (
-              <div className="mt-2 text-sm text-gray-500">
-                먼저 1. 위치 선택을 완료해주세요.
-              </div>
-            )}
+              {isLocationOpen && (
+                <div className="flex flex-wrap gap-2 pt-3">
+                  <button 
+                    onClick={() => handleGuSelect(null)} 
+                    className={!selectedGu && !usingMyLocation ? activeBtnClass : inactiveBtnClass}
+                  >
+                    전체
+                  </button>
+                  {districts.map(d => (
+                    <button 
+                      key={d.id} 
+                      onClick={() => handleGuSelect(d.name)} 
+                      className={selectedGu === d.name ? activeBtnClass : inactiveBtnClass}
+                    >
+                      {d.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <hr className="my-3" />
+
+            {/* --- 2. '항목 선택' 아코디언 --- */}
+            <div className="mb-2">
+              <button
+                onClick={() => {
+                  if (locationSelected) setIsCategoryOpen(!isCategoryOpen);
+                }}
+                className={`${accordionHeaderBaseClass} ${!locationSelected ? accordionHeaderDisabled : accordionHeaderActive}`}
+                disabled={!locationSelected}
+              >
+                <h3 className={`${accordionTitleBase} ${!locationSelected ? accordionTitleDisabled : accordionTitleActive}`}>
+                  2. 항목 선택
+                  {selectedCategories.length > 0 && (
+                    <span className="text-sm font-medium text-primary ml-2">
+                      ({selectedCategories.length}개)
+                    </span>
+                  )}
+                </h3>
+                
+                <div className="flex items-center">
+                  {/* --- [수정됨] RefreshCcw 아이콘으로 변경 --- */}
+                  {locationSelected && selectedCategories.length > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedCategories([]);
+                      }}
+                      className="p-1 text-gray-500 hover:text-primary transition-colors"
+                      title="항목 초기화"
+                    >
+                      <RefreshCcw size={18} /> {/* RefreshCcw 아이콘 */}
+                    </button>
+                  )}
+                  <ChevronDown 
+                    size={20} 
+                    className={`transition-transform ${isCategoryOpen ? 'rotate-180' : ''} ${!locationSelected ? 'text-gray-400' : 'text-gray-800'}`} 
+                  />
+                </div>
+              </button>
+
+              {isCategoryOpen && locationSelected && (
+                <div className="flex flex-wrap gap-2 pt-3">
+                  {uiCategories.map(c => (
+                    <button 
+                      key={c.value} 
+                      onClick={() => handleCategoryToggle(c.value)} 
+                      className={selectedCategories.includes(c.value) ? activeBtnClass : inactiveBtnClass}
+                    >
+                      {c.label.trim()}
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {!locationSelected && (
+                <p className="text-sm text-gray-400 italic pt-2">
+                  먼저 1. 위치 선택을 완료해주세요.
+                </p>
+              )}
+            </div>
+            
           </div>
         </div>
       </div>
 
-      {/* 모달 렌더링 */}
       {selectedFacility && (
         <FacilityModal
           facility={selectedFacility}
-          onClose={() => {
-            console.log('❌ 모달 닫기');
-            setSelectedFacility(null);
-          }}
+          onClose={() => setSelectedFacility(null)}
         />
       )}
-    </div>
+    </section>
   );
 };
 

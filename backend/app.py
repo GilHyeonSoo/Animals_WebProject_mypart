@@ -59,72 +59,6 @@ def get_haversine_distance(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
-DB_PATH = '../animalloo_en_db.sqlite'
-
-def query_sqlite_db(query, params=None):
-    """
-    SQLite DB에 쿼리를 실행하여 결과를 JSON으로 반환
-    필드명을 프론트엔드 형식에 맞게 매핑
-    """
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        if params:
-            cursor.execute(query, params)
-        else:
-            cursor.execute(query)
-        
-        rows = cursor.fetchall()
-        results = []
-        
-        # 필드명 매핑 테이블
-        field_mapping = {
-            'Facility_ID': 'id',
-            'Name': 'name',
-            'Category': 'category',
-            'District': 'district',
-            'PhoneNumber': 'phone',
-            'LotAddress': 'address',
-            'RoadAddress': 'road_address',
-            'Description': 'description',
-            'Website': 'website',
-            'ParkingAvailable': 'parking_available',
-            'PetFriendly': 'pet_friendly',
-            'AdmissionFeeInfo': 'admission_fee',
-            'PetRestrictions': 'pet_restrictions',
-            # Latitude, Longitude는 그대로 유지
-        }
-        
-        for row in rows:
-            data = dict(row)
-            mapped_data = {}
-            
-            # 필드명 매핑
-            for key, value in data.items():
-                new_key = field_mapping.get(key, key)
-                mapped_data[new_key] = value
-            
-            # id를 문자열로 변환
-            if 'id' in mapped_data:
-                mapped_data['id'] = str(mapped_data['id'])
-            
-            results.append(mapped_data)
-        
-        print(f"[DB 조회] {len(results)}개 결과")
-        if results:
-            print(f"[DB 샘플] id={results[0].get('id')}, name={results[0].get('name')}, category={results[0].get('category')}")
-        
-        return results
-    
-    except sqlite3.Error as e:
-        print(f"[DB 오류] {e}")
-        return []
-    finally:
-        if conn:
-            conn.close()
 
 def query_db_by_district(district: str, categories: list) -> list:
     """
@@ -246,25 +180,27 @@ def handle_search():
     query = data.get('query')
     lat = data.get('lat')
     lon = data.get('lon')
-    
+
     if not query or lat is None or lon is None:
-        return jsonify({"error": "필수 정보(query, lat, lon)가 누락되었습니다."}), 400
-    
-    print(f"\n[API 요청 수신] 쿼리: '{query}', 위치: ({lat}, {lon})")
-    
+        return jsonify({"error": "query, lat, lon은 필수입니다."}), 400
+
+    print(f"[API 요청 수신] 쿼리: '{query}', 위치: ({lat}, {lon})")
+
+    # LLM으로 검색 파라미터 추출
     try:
         search_params = llm_processor.get_search_parameters(query)
         print(f"[LLM 분석 완료] 파라미터: {search_params}")
     except Exception as e:
         print(f"[LLM 오류] {e}")
-        return jsonify({"error": f"LLM 분석 중 오류 발생: {e}"}), 500
-    
+        return jsonify({"error": f"LLM 분석 실패: {e}"}), 500
+
+    # DB에서 시설 검색
     try:
-        facilities = query_sqlite_db(lat, lon, search_params)
+        facilities = query_by_location_and_categories(lat, lon, search_params)  # ✅ 새 함수 사용!
         return jsonify(facilities)
     except Exception as e:
         print(f"[DB 오류] {e}")
-        return jsonify({"error": f"데이터 검색 중 오류 발생: {e}"}), 500
+        return jsonify({"error": f"검색 실패: {e}"}), 500
 
 @app.route('/api/filter', methods=['POST'])
 def handle_filter():
@@ -328,6 +264,96 @@ def get_facility_detail(facility_id):
     finally:
         if conn:
             conn.close()
+
+def query_by_location_and_categories(lat: float, lon: float, search_params: dict) -> list:
+    """
+    위치(위경도)와 카테고리로 시설을 검색합니다.
+    LLM 검색 API용 함수입니다.
+    """
+    print(f"[위치 검색] lat={lat}, lon={lon}, params={search_params}")
+    
+    DB_PATH = '../animalloo_en_db.sqlite'
+    conn = None
+    results = []
+    
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # 카테고리 필터링
+        categories = search_params.get('categories', [])
+        search_radius_km = search_params.get('search_radius_km', 5.0)
+        
+        # 1단계: 모든 시설 가져오기
+        if categories:
+            placeholders = ', '.join('?' for _ in categories)
+            query = f"SELECT * FROM facilities WHERE category IN ({placeholders})"
+            cursor.execute(query, categories)
+        else:
+            query = "SELECT * FROM facilities"
+            cursor.execute(query)
+        
+        facilities = cursor.fetchall()
+        
+        # 2단계: 거리 계산 및 필터링
+        for facility in facilities:
+            facility_data = dict(facility)
+            facility_lat = facility_data.get('Latitude')
+            facility_lon = facility_data.get('Longitude')
+            
+            if facility_lat is None or facility_lon is None:
+                continue
+            
+            # 거리 계산
+            distance = get_haversine_distance(lat, lon, facility_lat, facility_lon)
+            
+            # 반경 내에 있는지 확인
+            if distance <= search_radius_km:
+                # 필드명 매핑
+                field_mapping = {
+                    'Facility_ID': 'id',
+                    'Name': 'name',
+                    'Category': 'category',
+                    'District': 'district',
+                    'PhoneNumber': 'phone',
+                    'LotAddress': 'address',
+                    'RoadAddress': 'road_address',
+                    'Description': 'description',
+                    'Website': 'website',
+                    'ParkingAvailable': 'parking_available',
+                    'PetFriendly': 'pet_friendly',
+                    'AdmissionFeeInfo': 'admission_fee',
+                    'PetRestrictions': 'pet_restrictions',
+                }
+                
+                mapped_data = {}
+                for key, value in facility_data.items():
+                    new_key = field_mapping.get(key, key)
+                    mapped_data[new_key] = value
+                
+                # id를 문자열로 변환
+                if 'id' in mapped_data:
+                    mapped_data['id'] = str(mapped_data['id'])
+                
+                # 거리 추가
+                mapped_data['distance_km'] = round(distance, 2)
+                
+                results.append(mapped_data)
+        
+        # 거리순 정렬
+        results.sort(key=lambda x: x.get('distance_km', 999))
+        
+    except sqlite3.Error as e:
+        print(f"[DB 오류] {e}")
+        raise e
+    finally:
+        if conn:
+            conn.close()
+    
+    print(f"[위치 검색] {len(results)}개 시설 반환 (반경 {search_radius_km}km)")
+    return results
+
 
 # --- 5. 서버 실행 ---
 if __name__ == '__main__':

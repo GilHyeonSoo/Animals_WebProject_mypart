@@ -10,16 +10,16 @@ interface FacilityModalProps {
 const categoryLabels: Record<string, string> = {
   'veterinary hospital': '동물병원',
   'pharmacy': '동물약국',
-  'grooming': '미용샵',
-  'culture_center': '문화센터',
-  'museum': '박물관',
-  'art_gallery': '미술관',
+  'beauty salon': '미용샵',
+  'cultural center': '문화센터',
+  'museum building': '박물관',
+  'art museum': '미술관',
   'travel': '여행지',
-  'care_service': '위탁관리',
-  'pension': '펜션',
-  'pet_supplies': '반려동물용품',
-  'restaurant': '음식점',
-  'cafe': '카페',
+  'hotel': '위탁관리',
+  '펜션': '펜션',
+  'shop': '반려동물용품',
+  'Korean restaurant': '음식점',
+  'café au lait': '카페',
 };
 
 const FacilityModal = ({ facility, onClose }: FacilityModalProps) => {
